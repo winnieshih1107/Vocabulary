@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>單字學習工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F5F2;
+    --surface: #FFFFFF;
+    --surface2: #F0EDE8;
+    --border: #E2DDD6;
+    --border2: #CFC9BF;
+    --text: #1A1714;
+    --text2: #6B6259;
+    --text3: #9E9489;
+    --accent: #4F46E5;
+    --accent-light: #EEF2FF;
+    --accent-dark: #3730A3;
+    --green: #059669;
+    --green-light: #ECFDF5;
+    --red: #DC2626;
+    --red-light: #FEF2F2;
+    --amber: #D97706;
+    --amber-light: #FFFBEB;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-lg: 18px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    height: 60px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo { font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+  .logo span { color: var(--text); }
+
+  .word-badge {
+    font-size: 12px; font-weight: 600;
+    background: var(--accent-light); color: var(--accent);
+    padding: 3px 10px; border-radius: 20px;
+  }
+
+  .main { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .tabs {
+    display: flex; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 5px; margin-bottom: 1.5rem; gap: 4px;
+  }
+
+  .tab {
+    flex: 1; padding: 10px 0; font-size: 14px; font-weight: 600;
+    font-family: inherit; border: none; background: transparent;
+    cursor: pointer; border-radius: var(--radius); color: var(--text2); transition: all 0.2s;
+  }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active { background: var(--accent); color: #fff; }
+
+  .section { display: none; }
+  .section.visible { display: block; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+  }
+
+  .import-hint { font-size: 13px; color: var(--text2); margin-bottom: 10px; line-height: 1.6; }
+  .import-hint code {
+    background: var(--surface2); padding: 1px 6px; border-radius: 4px;
+    font-family: monospace; font-size: 12px;
+  }
+
+  textarea {
+    width: 100%; min-height: 160px; font-family: 'Courier New', monospace;
+    font-size: 13px; padding: 14px; border: 1.5px solid var(--border);
+    border-radius: var(--radius); resize: vertical; background: var(--surface);
+    color: var(--text); line-height: 1.7; transition: border-color 0.2s;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+
+  .btn {
+    padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px;
+    font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.15s;
+    border: 1.5px solid var(--border2); background: var(--surface); color: var(--text);
+  }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-icon {
+    width: 38px; height: 38px; padding: 0; display: flex;
+    align-items: center; justify-content: center; border-radius: 50%; font-size: 16px;
+  }
+
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 0.06em; margin: 1.5rem 0 0.75rem;
+  }
+
+  .word-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 4px;
+  }
+  .word-grid::-webkit-scrollbar { width: 4px; }
+  .word-grid::-webkit-scrollbar-track { background: transparent; }
+  .word-grid::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .word-chip {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; background: var(--surface2); border-radius: var(--radius-sm);
+    border: 1px solid var(--border); gap: 6px;
+  }
+  .chip-en { font-size: 13px; font-weight: 600; }
+  .chip-zh { font-size: 12px; color: var(--text2); }
+  .del-btn {
+    background: none; border: none; cursor: pointer; color: var(--text3);
+    font-size: 14px; line-height: 1; padding: 2px; flex-shrink: 0; transition: color 0.15s;
+  }
+  .del-btn:hover { color: var(--red); }
+
+  .fc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .fc-counter { font-size: 14px; font-weight: 700; color: var(--text2); }
+
+  .progress-bar {
+    width: 100%; height: 6px; background: var(--surface2); border-radius: 3px;
+    margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), #818CF8);
+    border-radius: 3px; transition: width 0.4s ease;
+  }
+
+  .card-wrap {
+    perspective: 1200px; height: 260px; cursor: pointer;
+    margin-bottom: 1.2rem; user-select: none;
+  }
+  .card-inner {
+    width: 100%; height: 100%; position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card-wrap.flipped .card-inner { transform: rotateY(180deg); }
+
+  .card-face {
+    position: absolute; inset: 0; backface-visibility: hidden;
+    -webkit-backface-visibility: hidden; border-radius: var(--radius-lg);
+    border: 1.5px solid var(--border); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; padding: 2.5rem;
+  }
+  .card-front { background: var(--surface); box-shadow: var(--shadow-lg); }
+  .card-back { transform: rotateY(180deg); background: var(--accent); border-color: var(--accent-dark); }
+
+  .card-word { font-size: 36px; font-weight: 800; text-align: center; letter-spacing: -1px; line-height: 1.2; }
+  .card-front .card-word { color: var(--text); }
+  .card-back .card-word { color: #fff; }
+
+  .card-sub { font-size: 15px; color: var(--text2); text-align: center; }
+  .card-back .card-sub { color: rgba(255,255,255,0.7); }
+
+  .card-hint {
+    position: absolute; bottom: 16px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .card-front .card-hint { color: var(--text3); }
+  .card-back .card-hint { color: rgba(255,255,255,0.5); }
+
+  .fc-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  .speak-btn { display: flex; align-items: center; gap: 6px; }
+
+  .nav-row { display: flex; gap: 8px; justify-content: center; align-items: center; }
+  .side-toggle { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+
+  .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .quiz-score { display: flex; gap: 12px; font-size: 14px; font-weight: 700; }
+  .score-correct { color: var(--green); }
+  .score-wrong { color: var(--red); }
+
+  .quiz-type-row { display: flex; gap: 8px; margin-bottom: 1.2rem; }
+  .qtype-btn {
+    flex: 1; padding: 9px 0; font-size: 13px; font-weight: 600; font-family: inherit;
+    border: 1.5px solid var(--border2); border-radius: var(--radius-sm);
+    background: var(--surface); color: var(--text2); cursor: pointer; transition: all 0.15s;
+  }
+  .qtype-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+
+  .quiz-question {
+    background: var(--surface2); border-radius: var(--radius-lg);
+    padding: 2rem; text-align: center; margin-bottom: 1.2rem; border: 1px solid var(--border);
+  }
+  .quiz-q-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); margin-bottom: 10px; }
+  .quiz-q-word { font-size: 30px; font-weight: 800; letter-spacing: -1px; margin-bottom: 12px; }
+
+  .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .opt-btn {
+    padding: 16px 12px; border-radius: var(--radius); border: 1.5px solid var(--border2);
+    background: var(--surface); font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: all 0.15s; color: var(--text); text-align: center; line-height: 1.4;
+  }
+  .opt-btn:hover:not(:disabled) {
+    border-color: var(--accent); background: var(--accent-light); color: var(--accent); transform: translateY(-1px);
+  }
+  .opt-btn.correct { background: var(--green-light); border-color: var(--green); color: var(--green); }
+  .opt-btn.wrong { background: var(--red-light); border-color: var(--red); color: var(--red); }
+  .opt-btn:disabled { cursor: default; transform: none; }
+
+  .quiz-next { width: 100%; display: none; }
+  .quiz-next.show { display: block; }
+
+  .quiz-result { text-align: center; padding: 3rem 1rem; }
+  .result-emoji { font-size: 60px; margin-bottom: 1rem; }
+  .result-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .result-sub { font-size: 15px; color: var(--text2); margin-bottom: 2rem; }
+
+  .result-stats { display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem; }
+  .stat-block { text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 800; }
+  .stat-label { font-size: 12px; color: var(--text2); font-weight: 600; margin-top: 2px; }
+  .stat-correct .stat-num { color: var(--green); }
+  .stat-wrong .stat-num { color: var(--red); }
+
+  .result-actions { display: flex; gap: 10px; justify-content: center; }
+
+  .empty-state { text-align: center; padding: 4rem 1rem; color: var(--text2); }
+  .empty-icon { font-size: 48px; margin-bottom: 1rem; filter: grayscale(0.3); }
+  .empty-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .empty-sub { font-size: 14px; }
+
+  @media (max-width: 500px) {
+    .main { padding: 1.5rem 1rem 3rem; }
+    .card-word { font-size: 28px; }
+    .quiz-options { grid-template-columns: 1fr; }
+    .word-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">Flash<span>Cards</span></div>
+  <div class="word-badge" id="header-badge">0 個單字</div>
+</header>
+
+<main class="main">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('import')">📥 匯入單字</button>
+    <button class="tab" onclick="switchTab('cards')">📚 字卡練習</button>
+    <button class="tab" onclick="switchTab('quiz')">✏️ 測驗模式</button>
+  </div>
+
+  <!-- IMPORT -->
+  <div id="tab-import" class="section visible">
+    <div class="card">
+      <p class="import-hint">每行輸入一個單字，格式：<code>英文, 中文</code>（以逗號分隔）</p>
+      <textarea id="importText" placeholder="例如：
+apple, 蘋果
+beautiful, 美麗的
+computer, 電腦
+language, 語言
+study, 學習"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="importWords()">✓ 匯入單字</button>
+        <button class="btn" onclick="exportWords()">📤 匯出單字</button>
+        <button class="btn" onclick="clearAll()">🗑 清除全部</button>
+      </div>
+      <div id="mastered-btn-area" style="display:none;margin-top:12px">
+        <button class="btn" onclick="showMasteredPanel()" style="width:100%;border-color:#059669;background:#ECFDF5;color:#059669;font-weight:700">
+          ✓ 查看並移除已練熟單字（<span id="mastered-count">0</span> 個）
+        </button>
+      </div>
+    </div>
+
+    <div id="word-list-section" style="display:none">
+      <div class="section-title">已匯入單字</div>
+      <div class="word-grid" id="word-grid"></div>
+    </div>
+  </div>
+
+  <!-- FLASHCARDS -->
+  <div id="tab-cards" class="section">
+    <div id="cards-empty" class="empty-state">
+      <div class="empty-icon">📚</div>
+      <div class="empty-title">還沒有單字</div>
+      <div class="empty-sub">請先到「匯入單字」頁面新增單字</div>
+    </div>
+    <div id="cards-content" style="display:none">
+      <div class="card">
+        <div class="fc-header">
+          <span class="fc-counter" id="card-counter">1 / 1</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm" onclick="shuffleCards()">🎲 隨機</button>
+            <button class="btn btn-sm" onclick="resetCards()">↩ 重置</button>
+          </div>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="card-progress" style="width:0%"></div>
+        </div>
+
+        <div class="card-wrap" id="flashcard" onclick="flipCard()">
+          <div class="card-inner">
+            <div class="card-face card-front">
+              <div class="card-word" id="card-front-text"></div>
+              <div class="card-sub" id="card-front-sub"></div>
+              <span class="card-hint">點擊翻面</span>
+            </div>
+            <div class="card-face card-back">
+              <div class="card-word" id="card-back-text"></div>
+              <div class="card-sub" id="card-back-sub"></div>
+              <span class="card-hint">點擊翻回</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="fc-actions">
+          <button class="btn speak-btn" onclick="speakCurrent('en')">🔊 英文發音</button>
+          <button class="btn speak-btn" onclick="speakCurrent('zh')">🔊 中文發音</button>
+        </div>
+
+        <div class="nav-row">
+          <button class="btn btn-icon" onclick="prevCard()">←</button>
+          <span style="font-size:13px;color:var(--text3);font-weight:600;min-width:60px;text-align:center" id="card-label">正面英文</span>
+          <button class="btn btn-icon" onclick="nextCard()">→</button>
+        </div>
+
+        <div class="side-toggle">
+          <button class="btn btn-sm" onclick="setShowSide('en')">英文正面</button>
+          <button class="btn btn-sm" onclick="setShowSide('zh')">中文正面</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="tab-quiz" class="section">
+    <div id="quiz-empty" class="empty-state">
+      <div class="empty-icon">✏️</div>
+      <div class="empty-title">還沒有單字</div>
+      <div class="empty-sub">至少需要 2 個單字才能開始測驗</div>
+    </div>
+    <div id="quiz-content" style="display:none">
+      <div class="card">
+        <div class="quiz-type-row">
+          <button class="qtype-btn active" id="qt-en" onclick="setQuizType('en')">看英文 → 選中文</button>
+          <button class="qtype-btn" id="qt-zh" onclick="setQuizType('zh')">看中文 → 選英文</button>
+        </div>
+
+        <div id="quiz-playing">
+          <div class="quiz-header">
+            <span class="fc-counter" id="quiz-counter">1 / 10</span>
+            <div class="quiz-score">
+              <span class="score-correct">✓ <span id="q-correct">0</span></span>
+              <span class="score-wrong">✗ <span id="q-wrong">0</span></span>
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="quiz-progress" style="width:10%"></div>
+          </div>
+
+          <div class="quiz-question">
+            <div class="quiz-q-label" id="quiz-q-label">請選出正確的中文意思</div>
+            <div class="quiz-q-word" id="quiz-q-word"></div>
+            <button class="btn btn-sm speak-btn" id="quiz-speak-btn" onclick="speakQuiz()" style="margin:0 auto">🔊 播放發音</button>
+          </div>
+
+          <div class="quiz-options" id="quiz-options"></div>
+          <button class="btn btn-primary quiz-next" id="quiz-next-btn" onclick="nextQuestion()">下一題 →</button>
+        </div>
+
+        <div id="quiz-result" style="display:none" class="quiz-result">
+          <div class="result-emoji" id="result-emoji"></div>
+          <div class="result-title" id="result-title"></div>
+          <div class="result-sub" id="result-sub"></div>
+          <div class="result-stats">
+            <div class="stat-block stat-correct">
+              <div class="stat-num" id="res-correct">0</div>
+              <div class="stat-label">答對</div>
+            </div>
+            <div class="stat-block stat-wrong">
+              <div class="stat-num" id="res-wrong">0</div>
+              <div class="stat-label">答錯</div>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button class="btn btn-primary" onclick="startQuiz()">🔄 再來一次</button>
+            <button class="btn" onclick="setQuizType(quizType === 'en' ? 'zh' : 'en')">🔀 換題型</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const STORAGE_KEY = 'flashcards_words';
+
+let words = [];
+let cardIndex = 0;
+let cardOrder = [];
+let showSide = 'en';
+let quizType = 'en';
+let quizWords = [];
+let quizIdx = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let answered = false;
+let currentQuizWord = null;
+
+function loadWords() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      words = JSON.parse(saved).map(w => ({
+        en: w.en, zh: w.zh,
+        seen: w.seen || 0, correct: w.correct || 0
+      }));
+      renderWordGrid();
+      updateBadge();
+    }
+  } catch(e) { words = []; }
+}
+
+function saveWords() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(words)); } catch(e) {}
+}
+
+function exportWords() {
+  if (words.length === 0) return showToast('沒有單字可以匯出');
+  const content = words.map(w => `${w.en}, ${w.zh}`).join('\n');
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'flashcards.txt';
+  a.click();
+  showToast('已匯出單字檔案 📁');
+}
+
+function importWords() {
+  const text = document.getElementById('importText').value.trim();
+  if (!text) return;
+  let added = 0;
+  text.split('\n').forEach(line => {
+    const parts = line.split(',');
+    if (parts.length >= 2) {
+      const en = parts[0].trim();
+      const zh = parts.slice(1).join(',').trim();
+      if (en && zh && !words.find(w => w.en.toLowerCase() === en.toLowerCase())) {
+        words.push({ en, zh, seen: 0, correct: 0 });
+        added++;
+      }
+    }
+  });
+  document.getElementById('importText').value = '';
+  renderWordGrid();
+  updateBadge();
+  if (added > 0) { saveWords(); showToast(`已匯入 ${added} 個單字 ✓`); }
+}
+
+function clearAll() {
+  if (words.length === 0) return;
+  if (confirm('確定要清除所有單字嗎？')) {
+    words = [];
+    renderWordGrid();
+    updateBadge();
+    saveWords();
+  }
+}
+
+function deleteWord(idx) {
+  words.splice(idx, 1);
+  renderWordGrid();
+  updateBadge();
+  saveWords();
+}
+
+const MASTERY_THRESHOLD = 5;
+
+function masteryLevel(w) {
+  const seen = w.seen || 0;
+  const correct = w.correct || 0;
+  if (seen === 0) return 0;
+  if (seen >= MASTERY_THRESHOLD && correct / seen >= 0.8) return 3;
+  if (seen >= 3) return 2;
+  return 1;
+}
+
+function masteryLabel(level) { return ['', '初學', '練習中', '✓ 熟練'][level]; }
+function masteryColor(level) { return ['', '#D97706', '#185FA5', '#059669'][level]; }
+function masteryBg(level)    { return ['', '#FFFBEB', '#EEF2FF', '#ECFDF5'][level]; }
+
+function renderWordGrid() {
+  const sec = document.getElementById('word-list-section');
+  const grid = document.getElementById('word-grid');
+  if (words.length === 0) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const mastered = words.filter(w => masteryLevel(w) === 3);
+  const masteredBtnArea = document.getElementById('mastered-btn-area');
+  if (masteredBtnArea) {
+    masteredBtnArea.style.display = mastered.length > 0 ? '' : 'none';
+    const mb = document.getElementById('mastered-count');
+    if (mb) mb.textContent = mastered.length;
+  }
+
+  grid.innerHTML = words.map((w, i) => {
+    const level = masteryLevel(w);
+    const seen = w.seen || 0;
+    const badge = level > 0
+      ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:${masteryBg(level)};color:${masteryColor(level)}">${masteryLabel(level)} ${seen}次</span>`
+      : `<span style="font-size:11px;color:#9E9489">未學習</span>`;
+    return `<div class="word-chip">
+      <div style="flex:1;min-width:0">
+        <div class="chip-en">${w.en}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
+          <div class="chip-zh">${w.zh}</div>
+          ${badge}
+        </div>
+      </div>
+      <button class="del-btn" onclick="deleteWord(${i})" title="刪除">×</button>
+    </div>`;
+  }).join('');
+}
+
+function showMasteredPanel() {
+  const mastered = words.filter(w => masteryLevel(w) === 3);
+  if (mastered.length === 0) { showToast('目前沒有熟練的單字'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'mastered-overlay';
+  Object.assign(overlay.style, {
+    position:'fixed', inset:'0', background:'rgba(0,0,0,0.45)',
+    zIndex:'200', display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem'
+  });
+
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:460px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--border)">
+      <div style="padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:16px;font-weight:800">✓ 已熟練單字</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px">學習 ${MASTERY_THRESHOLD} 次以上且答對率 ≥ 80%</div>
+        </div>
+        <button onclick="closeMasteredPanel()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);line-height:1">×</button>
+      </div>
+      <div style="overflow-y:auto;padding:1rem 1.5rem;flex:1">
+        <div style="display:flex;flex-direction:column;gap:8px" id="mastered-list">
+          ${mastered.map(w => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+              <div>
+                <div style="font-size:14px;font-weight:700">${w.en}</div>
+                <div style="font-size:12px;color:var(--text2)">${w.zh} &nbsp;·&nbsp; 看過 ${w.seen||0} 次，答對 ${w.correct||0} 次</div>
+              </div>
+              <button onclick="removeSingleMastered('${w.en.replace(/'/g,"\\'")}',this)" style="font-size:12px;font-weight:700;font-family:inherit;padding:5px 10px;border-radius:6px;border:1px solid #DC2626;background:#FEF2F2;color:#DC2626;cursor:pointer">移除</button>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:8px">
+        <button onclick="removeAllMastered()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:1.5px solid #DC2626;background:#FEF2F2;color:#DC2626;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">全部移除（${mastered.length} 個）</button>
+        <button onclick="closeMasteredPanel()" style="padding:10px 18px;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">關閉</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeMasteredPanel(); });
+}
+
+function closeMasteredPanel() {
+  const el = document.getElementById('mastered-overlay');
+  if (el) el.remove();
+}
+
+function removeSingleMastered(en, btn) {
+  words = words.filter(w => w.en !== en);
+  saveWords(); renderWordGrid(); updateBadge();
+  btn.closest('div[style]').remove();
+  const list = document.getElementById('mastered-list');
+  if (list && list.children.length === 0) closeMasteredPanel();
+  showToast('已移除 ' + en);
+}
+
+function removeAllMastered() {
+  const count = words.filter(w => masteryLevel(w) === 3).length;
+  words = words.filter(w => masteryLevel(w) !== 3);
+  saveWords(); renderWordGrid(); updateBadge();
+  closeMasteredPanel();
+  showToast(`已移除 ${count} 個熟練單字 ✓`);
+}
+
+function updateBadge() {
+  document.getElementById('header-badge').textContent = `${words.length} 個單字`;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'2rem', left:'50%', transform:'translateX(-50%)',
+    background:'#1A1714', color:'#fff', padding:'10px 20px', borderRadius:'30px',
+    fontSize:'13px', fontWeight:'600', fontFamily:'Nunito,sans-serif',
+    zIndex:'999', opacity:'0', transition:'opacity 0.3s'
+  });
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity = '1'; });
+  setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2000);
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['import','cards','quiz'][i] === tab);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+  document.getElementById('tab-' + tab).classList.add('visible');
+  if (tab === 'cards') initCards();
+  if (tab === 'quiz') initQuiz();
+}
+
+function initCards() {
+  if (words.length === 0) {
+    document.getElementById('cards-empty').style.display = '';
+    document.getElementById('cards-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('cards-empty').style.display = 'none';
+  document.getElementById('cards-content').style.display = '';
+  cardOrder = words.map((_, i) => i);
+  cardIndex = 0;
+  renderCard();
+}
+
+function renderCard() {
+  const w = words[cardOrder[cardIndex]];
+  if (!w) return;
+  document.getElementById('flashcard').classList.remove('flipped');
+  setTimeout(() => {
+    if (showSide === 'en') {
+      document.getElementById('card-front-text').textContent = w.en;
+      document.getElementById('card-front-sub').textContent = '';
+      document.getElementById('card-back-text').textContent = w.zh;
+      document.getElementById('card-back-sub').textContent = w.en;
+      document.getElementById('card-label').textContent = '正面英文';
+    } else {
+      document.getElementById('card-front-text').textContent = w.zh;
+      document.getElementById('card-front-sub').textContent = '';
+      document.getElementById('card-back-text').textContent = w.en;
+      document.getElementById('card-back-sub').textContent = w.zh;
+      document.getElementById('card-label').textContent = '正面中文';
+    }
+  }, 100);
+  const total = cardOrder.length;
+  document.getElementById('card-counter').textContent = `${cardIndex + 1} / ${total}`;
+  document.getElementById('card-progress').style.width = `${((cardIndex + 1) / total) * 100}%`;
+}
+
+function flipCard() {
+  const fc = document.getElementById('flashcard');
+  if (!fc.classList.contains('flipped')) {
+    const w = words[cardOrder[cardIndex]];
+    if (w) { w.seen = (w.seen || 0) + 1; saveWords(); renderWordGrid(); }
+  }
+  fc.classList.toggle('flipped');
+}
+
+function prevCard() { if (cardIndex > 0) { cardIndex--; renderCard(); } }
+function nextCard() { if (cardIndex < cardOrder.length - 1) { cardIndex++; renderCard(); } }
+
+function shuffleCards() {
+  for (let i = cardOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cardOrder[i], cardOrder[j]] = [cardOrder[j], cardOrder[i]];
+  }
+  cardIndex = 0; renderCard(); showToast('已隨機排列 🎲');
+}
+
+function resetCards() { cardOrder = words.map((_, i) => i); cardIndex = 0; renderCard(); }
+function setShowSide(side) { showSide = side; renderCard(); }
+
+let ttsAudio = null;
+
+function speak(text, lang) {
+  if (window.self !== window.top) {
+    showToast('請下載後用瀏覽器開啟，才能使用語音 📱');
+    return;
+  }
+  if (ttsAudio) { ttsAudio.pause(); ttsAudio = null; }
+  const voice = lang === 'en' ? 'Brian' : 'Zhiwei';
+  const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
+  ttsAudio = new Audio(url);
+  ttsAudio.onerror = () => speakWebSpeech(text, lang);
+  ttsAudio.play().catch(() => speakWebSpeech(text, lang));
+}
+
+function speakWebSpeech(text, lang) {
+  if (!window.speechSynthesis) { showToast('語音功能不可用'); return; }
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang === 'en' ? 'en-US' : 'zh-TW';
+  utt.rate = 0.88;
+  const all = speechSynthesis.getVoices();
+  const v = all.find(v => v.lang === utt.lang) || all.find(v => v.lang.startsWith(lang === 'en' ? 'en' : 'zh'));
+  if (v) utt.voice = v;
+  speechSynthesis.speak(utt);
+}
+
+function speakCurrent(lang) {
+  const w = words[cardOrder[cardIndex]];
+  if (w) speak(lang === 'en' ? w.en : w.zh, lang);
+}
+
+function speakQuiz() {
+  if (currentQuizWord) speak(quizType === 'en' ? currentQuizWord.en : currentQuizWord.zh, quizType);
+}
+
+function initQuiz() {
+  if (words.length < 2) {
+    document.getElementById('quiz-empty').style.display = '';
+    document.getElementById('quiz-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('quiz-empty').style.display = 'none';
+  document.getElementById('quiz-content').style.display = '';
+  startQuiz();
+}
+
+function setQuizType(type) {
+  quizType = type;
+  document.getElementById('qt-en').classList.toggle('active', type === 'en');
+  document.getElementById('qt-zh').classList.toggle('active', type === 'zh');
+  document.getElementById('quiz-q-label').textContent = type === 'en' ? '請選出正確的中文意思' : '請選出正確的英文單字';
+  startQuiz();
+}
+
+function startQuiz() {
+  const indices = words.map((_, i) => i).sort(() => Math.random() - 0.5);
+  quizWords = indices.slice(0, Math.min(10, words.length)).map(i => words[i]);
+  quizIdx = 0; correctCount = 0; wrongCount = 0;
+  document.getElementById('quiz-result').style.display = 'none';
+  document.getElementById('quiz-playing').style.display = '';
+  renderQuestion();
+}
+
+function renderQuestion() {
+  answered = false;
+  currentQuizWord = quizWords[quizIdx];
+  const total = quizWords.length;
+  document.getElementById('quiz-counter').textContent = `${quizIdx + 1} / ${total}`;
+  document.getElementById('quiz-progress').style.width = `${((quizIdx + 1) / total) * 100}%`;
+  document.getElementById('q-correct').textContent = correctCount;
+  document.getElementById('q-wrong').textContent = wrongCount;
+  document.getElementById('quiz-q-word').textContent = quizType === 'en' ? currentQuizWord.en : currentQuizWord.zh;
+
+  const pool = words.filter(w => w !== currentQuizWord);
+  const wrong = pool.sort(() => Math.random() - 0.5).slice(0, 3);
+  const opts = [...wrong, currentQuizWord].sort(() => Math.random() - 0.5);
+  const label = quizType === 'en' ? (o => o.zh) : (o => o.en);
+
+  document.getElementById('quiz-options').innerHTML = opts.map(o =>
+    `<button class="opt-btn" data-en="${o.en}" onclick="checkAnswer(this)">${label(o)}</button>`
+  ).join('');
+  document.getElementById('quiz-next-btn').classList.remove('show');
+}
+
+function checkAnswer(btn) {
+  if (answered) return;
+  answered = true;
+  const isCorrect = btn.dataset.en === currentQuizWord.en;
+  currentQuizWord.seen = (currentQuizWord.seen || 0) + 1;
+  if (isCorrect) currentQuizWord.correct = (currentQuizWord.correct || 0) + 1;
+  saveWords(); renderWordGrid();
+  if (isCorrect) { correctCount++; btn.classList.add('correct'); }
+  else {
+    wrongCount++;
+    btn.classList.add('wrong');
+    document.querySelectorAll('.opt-btn').forEach(b => {
+      if (b.dataset.en === currentQuizWord.en) b.classList.add('correct');
+    });
+  }
+  document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+  document.getElementById('q-correct').textContent = correctCount;
+  document.getElementById('q-wrong').textContent = wrongCount;
+  const nb = document.getElementById('quiz-next-btn');
+  nb.textContent = quizIdx < quizWords.length - 1 ? '下一題 →' : '查看結果 🎉';
+  nb.classList.add('show');
+}
+
+function nextQuestion() {
+  quizIdx++;
+  if (quizIdx >= quizWords.length) { showResult(); return; }
+  renderQuestion();
+}
+
+function showResult() {
+  document.getElementById('quiz-playing').style.display = 'none';
+  document.getElementById('quiz-result').style.display = '';
+  const total = quizWords.length;
+  const pct = Math.round((correctCount / total) * 100);
+  let emoji, title;
+  if (pct === 100)     { emoji = '🎉'; title = '完美！全部答對！'; }
+  else if (pct >= 80)  { emoji = '😊'; title = '太棒了！'; }
+  else if (pct >= 60)  { emoji = '😐'; title = '不錯嘛！繼續加油！'; }
+  else                  { emoji = '😅'; title = '再多複習一下吧！'; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-sub').textContent = `${total} 題中答對 ${correctCount} 題，正確率 ${pct}%！`;
+  document.getElementById('res-correct').textContent = correctCount;
+  document.getElementById('res-wrong').textContent = wrongCount;
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('tab-cards').classList.contains('visible')) {
+    if (e.key === 'ArrowLeft') prevCard();
+    else if (e.key === 'ArrowRight') nextCard();
+    else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+  }
+});
+
+loadWords();
+</script>
+</body>
+</html>
