@@ -278,6 +278,16 @@
   <!-- IMPORT -->
   <div id="tab-import" class="section visible">
     <div class="card">
+      <!-- 檔案匯入 -->
+      <input type="file" id="vocabFileInput" accept=".html,.txt,.csv" style="display:none" onchange="handleVocabFileSelect(this)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <button class="btn" style="flex-shrink:0;white-space:nowrap" onclick="document.getElementById('vocabFileInput').click()">📂 從檔案匯入</button>
+        <span id="vocabFileName" style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">支援 .html（Claude ESL 課堂記錄）或 .txt / .csv</span>
+      </div>
+      <!-- 分隔 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text3)">
+        <hr style="flex:1;border:none;border-top:1px solid var(--border)">或手動輸入<hr style="flex:1;border:none;border-top:1px solid var(--border)">
+      </div>
       <p class="import-hint">每行輸入一個單字，格式：<code>英文, 中文</code>（以逗號分隔）</p>
       <textarea id="importText" placeholder="例如：
 apple, 蘋果
@@ -459,6 +469,42 @@ function exportWords() {
   a.download = 'flashcards.txt';
   a.click();
   showToast('已匯出單字檔案 📁');
+}
+
+function handleVocabFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  document.getElementById('vocabFileName').textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onerror = () => showToast('檔案讀取失敗，請重試');
+  reader.onload = function(e) {
+    const content = e.target.result;
+    let lines = [];
+
+    if (file.name.toLowerCase().endsWith('.html')) {
+      // 解析 Claude ESL 課堂 HTML：.vocab-card > .vocab-word + .vocab-def
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, 'text/html');
+      doc.querySelectorAll('.vocab-card').forEach(card => {
+        const word = card.querySelector('.vocab-word')?.textContent.trim();
+        const def  = card.querySelector('.vocab-def')?.textContent.trim();
+        if (word && def) lines.push(`${word}, ${def}`);
+      });
+      if (lines.length === 0) {
+        showToast('找不到單字，請確認 HTML 含有 vocab-card 區塊');
+        return;
+      }
+    } else {
+      // .txt / .csv：每行 英文, 中文
+      lines = content.split('\n').map(l => l.trim()).filter(l => l.includes(','));
+    }
+
+    document.getElementById('importText').value = lines.join('\n');
+    importWords();
+  };
+  reader.readAsText(file, 'UTF-8');
 }
 
 function importWords() {
