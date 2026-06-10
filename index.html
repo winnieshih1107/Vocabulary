@@ -484,16 +484,41 @@ function handleVocabFileSelect(input) {
     let lines = [];
 
     if (file.name.toLowerCase().endsWith('.html')) {
-      // 解析 Claude ESL 課堂 HTML：.vocab-card > .vocab-word + .vocab-def
       const parser = new DOMParser();
       const doc = parser.parseFromString(content, 'text/html');
+
+      // ── 格式 1：Claude ESL 課堂 HTML (.vocab-card) ──────────────────────
       doc.querySelectorAll('.vocab-card').forEach(card => {
         const word = card.querySelector('.vocab-word')?.textContent.trim();
         const def  = card.querySelector('.vocab-def')?.textContent.trim();
         if (word && def) lines.push(`${word}, ${def}`);
       });
+
+      // ── 格式 2：11talk 課堂頁面 (h3.color-danger-400 + .fs-xl) ──────────
       if (lines.length === 0) {
-        showToast('找不到單字，請確認 HTML 含有 vocab-card 區塊');
+        doc.querySelectorAll('.card.mb-g').forEach(card => {
+          const h3 = card.querySelector('h3.color-danger-400');
+          const defDiv = card.querySelector('.fs-xl');
+          if (!h3) return;
+
+          // 只取純文字節點，排除 <a> <audio> 子元素
+          const textOf = el => Array.from(el.childNodes)
+            .filter(n => n.nodeType === 3)
+            .map(n => n.textContent)
+            .join('').trim();
+
+          const word = textOf(h3);
+          // 優先用中文翻譯，否則用英文定義
+          const tlDiv = card.querySelector('.translation');
+          let zh = tlDiv ? tlDiv.textContent.trim() : '';
+          if (!zh && defDiv) zh = textOf(defDiv);
+
+          if (word && zh) lines.push(`${word}, ${zh}`);
+        });
+      }
+
+      if (lines.length === 0) {
+        showToast('找不到單字，請確認 HTML 格式（支援 Claude ESL 或 11talk 課堂頁面）');
         return;
       }
     } else {
